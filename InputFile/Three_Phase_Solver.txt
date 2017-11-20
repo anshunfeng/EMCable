@@ -1,0 +1,7 @@
+### Solver_Type: Three_Phase_Solver
+### Frequency/Hz: 100
+### Amplitude/A: 200
+### Phase/degree: 120
+### Dielectric_domains: 8 6 1
+### Mental_sigma: 5.8e7
+### MeshFile_path: D:\\Important Documents\\cable_math\\FEM2D\\MeshFileForC.txt
