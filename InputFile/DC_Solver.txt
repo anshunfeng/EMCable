@@ -1,5 +1,0 @@
-### Solver_Type: DC_Solver
-### Amplitude/A: 225
-### Dielectric_domains: 4 5 2 8
-### Mental_sigma: 5.8e7
-### MeshFile_path: D:\\Important Documents\\cable_math\\FEM2D\\MeshFileForC.txt

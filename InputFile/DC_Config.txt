@@ -1,0 +1,6 @@
+### Solver_Type: DC
+### Amplitude/A: 225
+### Dielectric_domains:  2 8
+### Current_domains: 3 4 5
+### Mental_sigma: 5.8e7
+### MeshFile_path: D:\\Important Documents\\cable_math\\EMCable\\InputFile\\MeshFileForC.txt

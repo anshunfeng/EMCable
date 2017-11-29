@@ -11,7 +11,6 @@ using std::setw;
 Mesh::Mesh()
 {
 }
-//  清空指针指向的内存
 Mesh::~Mesh()
 {
 	if (!trianglePtrArray.empty())
@@ -64,6 +63,7 @@ bool Mesh::loadMatlabMeshFile(const Qstring & filename)
 
 		inputFile.get();
 	}
+	
 	int triID, triNum = 0;
 	int node1, node2, node3, subId;
 	inputFile.ignore(maxSize, '\n');
@@ -81,6 +81,7 @@ bool Mesh::loadMatlabMeshFile(const Qstring & filename)
 
 		inputFile.get();
 	}
+	
 	int edgeNum = 0;
 	int edgePointId;
 	inputFile.ignore(maxSize, '\n');
@@ -91,6 +92,7 @@ bool Mesh::loadMatlabMeshFile(const Qstring & filename)
 	}
 	if (!inputFile.eof())//
 		return false;
+	
 	// 将读取的mesh信息以一定的格式存入temp.dat文件中
 	Qofstream tmpFile("temp.dat", std::ios::out);
 	if (tmpFile.fail())
@@ -109,9 +111,9 @@ bool Mesh::readMatlabTmpFile()
 	if (input.fail())
 		return false;
 	int  nodeNum, triNum, edgeNum;
-	std::set<int> edgePointSets;
+	//std::set<int> edgePointSets;
 	input >> nodeNum >> triNum >> edgeNum;
-	vertices.reserve(nodeNum);
+	//vertices.reserve(nodeNum);
 	trianglePtrArray.reserve(triNum);
 
 	VectorR2 node;
@@ -119,7 +121,8 @@ bool Mesh::readMatlabTmpFile()
 	for (int i = 0; i < nodeNum; ++i)
 	{
 		input >> nodeID >> node.x >> node.y;
-		vertices.push_back(std::move(node));
+		indexVerticesAll.insert(std::make_pair(nodeID - 1, node));
+	//	vertices.push_back(std::move(node));
 	}
 
 	int  triID, node1, node2, node3, subId;
@@ -133,30 +136,34 @@ bool Mesh::readMatlabTmpFile()
 		subSet.insert(subId);
 		trianglePtrArray.push_back(pTri);
 	}
-	subdomain_count = static_cast<int>(subSet.size());
+	subdomain_count = static_cast<int>(subSet.size());//统计区域总数
 	int edgePointId;
-	for (int i = 0; i < triNum; ++i)
+	for (int i = 0; i < edgeNum; ++i)
 	{
 		input >> edgePointId;
-		edgePointSets.insert(edgePointId - 1);
+		boundaryIndexVertices.insert(edgePointId - 1);
 	}
-	m_boundary.setBoundary(edgePointSets);
-	//input >> nodeID;
+	
+	input >> nodeID;
 	if (!input.eof())
 		return false;
-
 	for (int t = 0; t < triNum; ++t)
 	{
 		trianglePtrArray[t]->getVertexID(node1, node2, node3);
-		trianglePtrArray[t]->setVertexArea(vertices[node1], vertices[node2], vertices[node3]);
+		trianglePtrArray[t]->setVertexArea(indexVerticesAll.find(node1)->second,
+			indexVerticesAll.find(node2)->second, indexVerticesAll.find(node3)->second);
 	}
+
+	for (auto it = indexVerticesAll.begin(); it != indexVerticesAll.end(); ++it)
+	{
+		if (!(boundaryIndexVertices.find(it->first) != boundaryIndexVertices.end()))
+		{
+			unknowVertices.insert(it->first);
+		}			
+	}
+	
 	meshName = "MeshByMatlab";
 	return true;
-}
-
-void Mesh::addTrianglePtr(Triangle * newTriangle)
-{
-	trianglePtrArray.push_back(newTriangle);
 }
 
 void Mesh::reportInfo(Qostream& strm) const
@@ -165,11 +172,11 @@ void Mesh::reportInfo(Qostream& strm) const
 	strm << std::left << std::fixed;
 	strm << "Mesh Information:\n";
 	strm << setw(30) << "  -> MeshName: " << meshName << strm.widen('\n');
-	strm << setw(30) << "  -> TotalVertices: " << vertices.size() << strm.widen('\n');
+	strm << setw(30) << "  -> TotalVertices: " << indexVerticesAll.size() << strm.widen('\n');
 	strm << setw(30) << "  -> Triangles: " << trianglePtrArray.size() << strm.widen('\n');
-	strm << setw(30) << "  -> EdgePoints:" << m_boundary.getBoundaryVerticesNum() << strm.widen('\n');
+	strm << setw(30) << "  -> EdgePoints:" << boundaryIndexVertices.size() << strm.widen('\n');
 	strm << setw(30) << "  -> Subdomains:" << subdomain_count << strm.widen('\n');
-	strm.flags(oldState); // 待注释
+	strm.flags(oldState);
 }
 
 void Mesh::clear()
@@ -180,22 +187,42 @@ void Mesh::clear()
 		delete trianglePtrArray[i];
 	//清空vector中的数据（这里指的是指针）
 	trianglePtrArray.clear();
-	vertices.clear();
+	//vertices.clear();
 }
+void Mesh::addTrianglePtr(Triangle * newTriangle)
+{
+	trianglePtrArray.push_back(newTriangle);
+}
+ bool Mesh::isBoundaryPoint(int _index)const
+{
 
-//void Mesh::Debug()
-//{
-//	auto count = trianglePtrArray.size();
-//	std::vector<int> sub_count(subdomain_count, 0);// subdomain_count每个子区域包含的三角单元数量，初始化为0
-//	for (size_t i = 0; i < count; ++i)
-//	{
-//		++sub_count[trianglePtrArray[i]->getID()]; // 获取每个三角单元的ID
-//	}
-//	Qcout << "Number of subdomain : " << subdomain_count << '\n';
-//	Qcout << "Number of triangles in each domain\n";
-//	for (int i = 0; i<sub_count.size(); ++i)
-//	{
-//		Qcout << "  --subdomain " << i + 1 << " : " << std::setw(10) << sub_count[i] << '\n';
-//	}
-//	Qcout.flush();
-//}
+	return boundaryIndexVertices.find(_index) != boundaryIndexVertices.end();
+}
+int Mesh::getUnkownVertexIndex(int _order)const
+ {
+	 int _id = 0;
+	 auto pos = unknowVertices.begin();
+	 for (pos; pos != unknowVertices.end(); pos++)
+	 {
+		 if (_order == _id)
+		 {
+			 break;
+		 }
+		 ++_id;
+	 }
+	 return *pos;
+ }
+int Mesh::getUnknownVertexOderbyIndex(int _index)const
+{
+	int _order = 0;
+	auto pos = unknowVertices.begin();
+	for (pos; pos != unknowVertices.end(); pos++)
+	{
+		if (_index == *pos)
+		{
+			break;
+		}
+		++_order;
+	}
+	return _order;
+}

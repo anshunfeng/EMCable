@@ -13,8 +13,8 @@ long long tool::elapsedTime(Qostream& strm, const Qstring& _description)
 	auto oldState = strm.flags(); // 读取/设置流的格式
 	strm << std::left; // 左对齐
 	auto current = ct::system_clock::now();// 现在时间点
-	auto period = ct::duration_cast<ct::milliseconds>(current - prev).count();
-	strm << '[' << std::setw(29) << _description + ':' << period << " ms]\n";
+	auto period = ct::duration_cast<ct::seconds>(current - prev).count();
+	strm << '[' << std::setw(29) << _description + ':' << period << " s]\n";
 	strm.flags(oldState);
 	prev = current;
 	return period;
@@ -26,8 +26,8 @@ void tool::totalTime(Qostream & strm)
 	auto oldState = strm.flags();
 	strm << std::left;
 	auto end = ct::system_clock::now();
-	auto period = ct::duration_cast<ct::milliseconds>(end - start).count();
-	strm << '[' << std::setw(29) << "total time:" << period << " ms]\n";
+	auto period = ct::duration_cast<ct::seconds>(end - start).count();
+	strm << '[' << std::setw(29) << "total time:" << period << " s]\n";
 	strm.flags(oldState);
 }
 
@@ -36,8 +36,9 @@ void tool::totalTime(Qostream & strm)
 //  return new path，创建目录
 Qstring tool::creatFolder(const Qstring & _dir, const Qstring & foldername)
 {
-	auto dir = _dir + '/' + foldername;
-	fs::create_directory(fs::v1::path(dir));
+	//auto dir = _dir + '/' + foldername;
+	auto dir = _dir  + foldername;
+	//fs::create_directory(fs::v1::path(dir));
 	return dir;
 }
 

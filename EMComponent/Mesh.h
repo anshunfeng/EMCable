@@ -3,7 +3,6 @@
 #include <set>
 #include <map>
 #include "Triangle.h"
-#include "Boundary.h"
 
 namespace component {
 
@@ -12,9 +11,10 @@ namespace component {
 	private:
 		Qstring                 meshName;
 		int                     subdomain_count;
-		std::vector<VectorR2>   vertices;
+		std::map<int, VectorR2> indexVerticesAll;
 		std::vector<Triangle *> trianglePtrArray;
-		Boundary                m_boundary;
+		std::set<int>			boundaryIndexVertices;
+		std::set<int>			unknowVertices;
 //成员函数
 	public:
 		Mesh();
@@ -24,13 +24,19 @@ namespace component {
 //内联
 	public:
 		Triangle&       getTriangleRef(size_t i); 
-		VectorR2        getVertex(int i)const;
-		int				getBoudaryPointsNum()const;
+		VectorR2        getVertex( int i)const;
+	//	VectorR2        getBoundayVertex( int i)const;
+		int				getVertexUnkownNum()const;
 		int				getVertexNum()const;
 		int             getTriangleNum() const;
 		int             getSubdomainNum() const;
+		int				getBoundaryVerticesNum()const;
+		
 //非内联
 	public:
+		bool			isBoundaryPoint(int _index)const;
+		int				getUnkownVertexIndex(int _order)const;
+		int				getUnknownVertexOderbyIndex(int _index)const;
 		void            addTrianglePtr(Triangle *newTriangle);
 		void            clear();
 		void            reportInfo(Qostream& strm) const;//信息报告
@@ -42,31 +48,32 @@ namespace component {
 		bool			loadMatlabMeshFile(const Qstring& filename);
 		bool			readMatlabTmpFile();
 	};
-
-	inline Triangle&  Mesh::getTriangleRef(size_t i)
+	
+	inline Triangle&    Mesh::getTriangleRef(size_t i)
 	{
 		return *trianglePtrArray[i];
 	}
-	inline VectorR2 Mesh::getVertex(int i) const
+	inline VectorR2	    Mesh::getVertex(int i) const
 	{
-		return vertices[i];
+		return indexVerticesAll.find(i)->second;
 	}
-	inline int Mesh::getBoudaryPointsNum() const
-	{
-		return m_boundary.getBoundaryVerticesNum();
-	}
-	inline int Mesh::getTriangleNum() const
+	inline int			Mesh::getTriangleNum() const
 	{
 		return static_cast<int>(trianglePtrArray.size());
 	}
-	inline int Mesh::getVertexNum()const
+	inline int			Mesh::getVertexNum()const
 	{
-		return static_cast<int>(vertices.size());
+		return static_cast<int>(indexVerticesAll.size());
 	}
-	inline int Mesh::getSubdomainNum() const
+	inline int			Mesh::getSubdomainNum() const
 	{
 		return subdomain_count;
 	}
-	
+	inline int			Mesh::getBoundaryVerticesNum()const
+	{  return  static_cast<int>(boundaryIndexVertices.size()); }
+	inline int			Mesh::getVertexUnkownNum()const
+	{
+		return static_cast<int>(unknowVertices.size());
+	}
 } 
 #endif

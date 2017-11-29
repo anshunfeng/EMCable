@@ -65,12 +65,12 @@ bool Loader::parseIsThreePhase()
 	m_config_file.ignore(maxSize, ' ');
 	m_config_file >> iden;
 	m_config_file >> iden;
-	if ((iden != "Three_Phase_Solver") && (iden != "DC_Solver"))
+	if ((iden != "ThreePhaseAC") && (iden != "DC"))
 	{
-		std::cout << "Change " << iden << " format to Three_Phase_Solver or DC_Solver" << std::endl;
+		std::cout << "Change " << iden << " format to ThreePhaseAC or DC" << std::endl;
 		return false;
 	}
-	if (iden == "Three_Phase_Solver")
+	if (iden == "ThreePhaseAC")
 	{
 		m_isThreePhase = true;
 	}
@@ -133,7 +133,7 @@ bool Loader::parseThreePhase()
 		{
 			int _id;
 			m_config_file >> _id;
-			m_threephase.m_dielectricNum.insert(static_cast<int>(_id));
+			m_dielectricDomains.insert(static_cast<int>(_id));
 			
 		}
 		m_config_file.ignore(maxSize, '\n');
@@ -141,6 +141,24 @@ bool Loader::parseThreePhase()
 	else
 	{
 		std::cout << "Change " << iden << " format to Dielectric_domains: " << std::endl;
+		return false;
+	}
+
+	m_config_file.ignore(maxSize, ' ');
+	m_config_file >> iden;
+	if (iden == "Current_domains:")
+	{
+		while (m_config_file.peek() != '\n')
+		{
+			int _id;
+			m_config_file >> _id;
+			m_currentDomains.insert(static_cast<int>(_id));
+		}
+		m_config_file.ignore(maxSize, '\n');
+	}
+	else
+	{
+		std::cout << "Change " << iden << " format to Current_domains: " << std::endl;
 		return false;
 	}
 	m_config_file.ignore(maxSize, ' ');
@@ -182,7 +200,7 @@ bool Loader::parseDC()
 		while (m_config_file.peek() != '\n')
 		{
 			m_config_file >> _id;
-			m_dc.m_dielectricNum.insert(_id);
+			m_dielectricDomains.insert(_id);
 		}
 		m_config_file.ignore(maxSize, '\n');
 	}
@@ -191,6 +209,25 @@ bool Loader::parseDC()
 		std::cout << "Change " << iden << " format to Dielectric_domains: " << std::endl;
 		return false;
 	}
+
+	m_config_file.ignore(maxSize, ' ');
+	m_config_file >> iden;
+	if (iden == "Current_domains:")
+	{
+		int  _id;
+		while (m_config_file.peek() != '\n')
+		{
+			m_config_file >> _id;
+			m_currentDomains.insert(_id);
+		}
+		m_config_file.ignore(maxSize, '\n');
+	}
+	else
+	{
+		std::cout << "Change " << iden << " format to Current_domains: " << std::endl;
+		return false;
+	}
+
 	m_config_file.ignore(maxSize, ' ');
 	m_config_file >> iden;
 	if (iden == "Mental_sigma:")
@@ -213,10 +250,12 @@ bool Loader::parsePath()
 	m_config_file >> iden;
 	if (iden == "MeshFile_path:")
 	{
+		m_config_file.ignore(maxSize, ' ');
 		getline(m_config_file, m_path);
 	}
 	else
 	{
+		
 		std::cout << "Change " << iden << " format to MeshFile_path: " << std::endl;
 		return false;
 	}
@@ -235,7 +274,13 @@ void component::Loader::report(Qostream & strm) const
 			<< setw(30) << "    => Amplitude: " << m_threephase.m_amplitude << "A" << '\n'
 			<< setw(30) << "    => Phase: " << m_threephase.m_phase << "degree" << '\n'
 			<< setw(30) << "    => Dielectric_domains: ";
-		for (auto it = m_threephase.m_dielectricNum.begin(); it != m_threephase.m_dielectricNum.end(); ++it)
+		for (auto it = m_dielectricDomains.begin(); it != m_dielectricDomains.end(); ++it)
+		{
+			strm << *it << " ";
+		}
+		strm << "\n";
+		strm << setw(30) << "    => Current_domains: ";
+		for (auto it = m_currentDomains.begin(); it != m_currentDomains.end(); ++it)
 		{
 			strm << *it << " ";
 		}
@@ -249,7 +294,13 @@ void component::Loader::report(Qostream & strm) const
 		strm << "  -> DC:\n"
 			<< setw(30) << "    => Amplitude:" << m_dc.m_amplitude << "A" << '\n'
 			<< setw(30) << "    => Dielectric_domains: ";
-		for (auto it = m_dc.m_dielectricNum.begin(); it != m_dc.m_dielectricNum.end(); ++it)
+		for (auto it = m_dielectricDomains.begin(); it != m_dielectricDomains.end(); ++it)
+		{
+			strm << *it << " ";
+		}
+		strm << "\n";
+		strm << setw(30) << "    => Current_domains: ";
+		for (auto it = m_currentDomains.begin(); it != m_currentDomains.end(); ++it)
 		{
 			strm << *it << " ";
 		}

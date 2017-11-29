@@ -123,13 +123,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Boundary.h" />
     <ClInclude Include="Custom.h" />
+    <ClInclude Include="EM.h" />
+    <ClInclude Include="EMBase.h" />
     <ClInclude Include="fieldStruct.h" />
     <ClInclude Include="Loader.h" />
     <ClInclude Include="Mathdef.h" />
+    <ClInclude Include="MatrixSolver.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MyDebugNew.h" />
+    <ClInclude Include="MyFWD.h" />
+    <ClInclude Include="Solver.h" />
+    <ClInclude Include="ThreePhaseAC.h" />
     <ClInclude Include="tools.h" />
     <ClInclude Include="Triangle.h" />
     <ClInclude Include="VectorC2.h" />
@@ -137,11 +142,14 @@
     <ClInclude Include="VectorR2.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Boundary.cpp" />
+    <ClCompile Include="EM.cpp" />
     <ClCompile Include="Loader.cpp" />
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="MatrixSolver.cpp" />
     <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="Test.cpp" />
-    <ClCompile Include="tool.cpp" />
+    <ClCompile Include="Solver.cpp" />
+    <ClCompile Include="ThreePhaseAC.cpp" />
+    <ClCompile Include="tools.cpp" />
     <ClCompile Include="Triangle.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

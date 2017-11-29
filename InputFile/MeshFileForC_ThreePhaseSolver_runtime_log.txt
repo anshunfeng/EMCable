@@ -1,0 +1,23 @@
+Config Information:
+  -> ThreePhase:
+    => Frequency:             50Hz
+    => Amplitude:             100A
+    => Phase:                 0degree
+    => Dielectric_domains:    1 2 
+    => Current_domains:       3 4 5 
+    => Mental_sigma:          5.8e+07
+    => MeshFile_path:         D:\\Important Documents\\cable_math\\EMCable\\InputFile\\MeshFileForC.txt
+Mesh Information:
+  -> MeshName:                MeshByMatlab
+  -> TotalVertices:           13009
+  -> Triangles:               25728
+  -> EdgePoints:              288
+  -> Subdomains:              5
+[end init:                    1 s]
+[end fillV:                   0 s]
+[end fillArea:                0 s]
+[end fillQ:                   0 s]
+[end fillSandT:               3 s]
+[end solve:                   85 s]
+[end output:                  0 s]
+[total time:                  92 s]

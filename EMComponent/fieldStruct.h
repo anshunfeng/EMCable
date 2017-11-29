@@ -7,8 +7,10 @@ namespace component {
 		ThreePhaseSource(value_t _freq = 0, value_t _amplitude = 0, value_t _phase = 0, value_t _sigma = 5.8e7)
 			: m_freq(_freq),  m_amplitude(_amplitude), m_phase(_phase), m_mentalSigma(_sigma)
 		{
+
 		}
-		std::set<int>	m_dielectricNum;
+		/*std::set<int>   m_currentDomains;
+		std::set<int>	m_dielectricDomains;*/
 		value_t			m_freq;
 		value_t			m_amplitude;
 		value_t			m_phase;
@@ -20,7 +22,8 @@ namespace component {
 		{
 		}
 		value_t			m_amplitude;
-		std::set<int>	m_dielectricNum;
+		/*td::set<int>   m_currentDomains;
+		std::set<int>	m_dielectricDomains;*/
 		value_t			m_mentalSigma;
 	};
 
