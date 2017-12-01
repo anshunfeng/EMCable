@@ -1,6 +1,4 @@
 #include "Solver.h"
-
-/*********************** Main ***************************/
 int main(int argc, char** argv)
 {
 	Qstring config, state("OK");
@@ -11,19 +9,9 @@ int main(int argc, char** argv)
 	{
 		Qcout << "Please examine the config path!" << std::endl;
 	}
-
 	solver::loadSolver(config, state);
 	Qcout << "Exit State: " << state << std::endl;
-	//Qmat test(4,5);
-	//test(0, 0) = 1;
-	//test(0, 1) = 1;
-	//test(1, 1) = 1;
-	//test(1, 2) = 1;
-	//test(2, 2) = 1;
-	//test(2, 3) = 1;
-	//Qcout << test.n_rows << std::endl;
-
-
+	
 
 #ifdef _DEBUG
 	_CrtDumpMemoryLeaks();

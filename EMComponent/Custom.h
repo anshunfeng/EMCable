@@ -1,12 +1,15 @@
 #pragma once
 #define ARMA_USE_LAPACK
 #define ARMA_USE_BLAS
+#define	ARMA_USE_SUPERLU
 #define ARMA_USE_CXX11
 
+//#define ARMA_DONT_USE_WRAPPER
 #ifndef _DEBUG
 #define ARMA_NO_DEBUG 
 #endif
 
+#include <vector>
 #include <string>
 #include <complex>
 #include <fstream>
@@ -15,10 +18,14 @@
 #include <iomanip> // 有关数据输出格式
 #include <assert.h>
 #include <armadillo> // 矩阵运算
-
+#include <Eigen\Dense>
+#include <Eigen\SparseLU>
+#include <Eigen/SparseQR>
+#include <Eigen/OrderingMethods>
 #define     Qcout               std::cout
 #define     Qcin                std::cin
 #define     Qcerr               std::cerr
+
 
 typedef std::fstream            Qfstream;
 typedef std::ifstream           Qifstream;
@@ -36,6 +43,10 @@ typedef arma::Col<Complex>      Qcx_vec;
 typedef arma::SpMat<Complex>    Qsp_cx_mat;
 typedef arma::SpMat<value_t>    Qsp_mat;
 typedef arma::Mat<size_t>       Qumat;
+
+typedef Eigen::SparseMatrix<Complex, Eigen::ColMajor>	EigenSparse_cx_mat;
+typedef std::vector<Eigen::Triplet<Complex> >			EigenTriplet_cx;
+typedef Eigen::VectorXcf								EigenVector_cx_vec;
 
 //  desktop: wt
 namespace wt {

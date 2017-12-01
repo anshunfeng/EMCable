@@ -14,7 +14,9 @@ namespace component {
 		std::map<int, VectorR2> indexVerticesAll;
 		std::vector<Triangle *> trianglePtrArray;
 		std::set<int>			boundaryIndexVertices;
-		std::set<int>			unknowVertices;
+		std::map<int, int>		unknowVerticesIndexOrder;
+		std::map<int, int>		unknowVerticesOrderIndex;
+	
 //³ÉÔ±º¯Êý
 	public:
 		Mesh();
@@ -73,7 +75,21 @@ namespace component {
 	{  return  static_cast<int>(boundaryIndexVertices.size()); }
 	inline int			Mesh::getVertexUnkownNum()const
 	{
-		return static_cast<int>(unknowVertices.size());
+		return static_cast<int>(unknowVerticesIndexOrder.size());
+	}
+
+	inline bool			Mesh::isBoundaryPoint(int _index)const
+	{
+
+		return boundaryIndexVertices.find(_index) != boundaryIndexVertices.end();
+	}
+	inline int			Mesh::getUnknownVertexOderbyIndex(int _index)const
+	{
+		return unknowVerticesIndexOrder.find(_index)->second;
+	}
+	inline int			Mesh::getUnkownVertexIndex(int _order)const
+	{
+		return unknowVerticesOrderIndex.find(_order)->second;
 	}
 } 
 #endif

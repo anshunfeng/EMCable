@@ -154,14 +154,17 @@ bool Mesh::readMatlabTmpFile()
 			indexVerticesAll.find(node2)->second, indexVerticesAll.find(node3)->second);
 	}
 
+	int _i = 0;
 	for (auto it = indexVerticesAll.begin(); it != indexVerticesAll.end(); ++it)
 	{
 		if (!(boundaryIndexVertices.find(it->first) != boundaryIndexVertices.end()))
 		{
-			unknowVertices.insert(it->first);
-		}			
-	}
+			unknowVerticesIndexOrder.insert(std::make_pair(it->first, _i));
+			unknowVerticesOrderIndex.insert(std::make_pair(_i, it->first));
+			++_i;
+		}
 	
+	}
 	meshName = "MeshByMatlab";
 	return true;
 }
@@ -177,6 +180,7 @@ void Mesh::reportInfo(Qostream& strm) const
 	strm << setw(30) << "  -> EdgePoints:" << boundaryIndexVertices.size() << strm.widen('\n');
 	strm << setw(30) << "  -> Subdomains:" << subdomain_count << strm.widen('\n');
 	strm.flags(oldState);
+
 }
 
 void Mesh::clear()
@@ -193,36 +197,15 @@ void Mesh::addTrianglePtr(Triangle * newTriangle)
 {
 	trianglePtrArray.push_back(newTriangle);
 }
- bool Mesh::isBoundaryPoint(int _index)const
-{
 
-	return boundaryIndexVertices.find(_index) != boundaryIndexVertices.end();
-}
-int Mesh::getUnkownVertexIndex(int _order)const
- {
-	 int _id = 0;
-	 auto pos = unknowVertices.begin();
-	 for (pos; pos != unknowVertices.end(); pos++)
-	 {
-		 if (_order == _id)
-		 {
-			 break;
-		 }
-		 ++_id;
-	 }
-	 return *pos;
- }
-int Mesh::getUnknownVertexOderbyIndex(int _index)const
-{
-	int _order = 0;
-	auto pos = unknowVertices.begin();
-	for (pos; pos != unknowVertices.end(); pos++)
-	{
-		if (_index == *pos)
-		{
-			break;
-		}
-		++_order;
-	}
-	return _order;
-}
+
+//bool Mesh::isBoundaryPoint(int _index)const
+//{
+//
+//	return boundaryIndexVertices.find(_index) != boundaryIndexVertices.end();
+//}
+//int	Mesh::getUnknownVertexOderbyIndex(int _index)const
+//{
+//	return unknowVerticesIndexOrder.find(_index)->second;
+//}
+//

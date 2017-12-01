@@ -11,19 +11,22 @@ namespace FEM {
 		std::set<int>			_m_currentDomains;
 		std::set<int>			_m_dielectricDomains;
 
+		Complex		J0_W_Delta;
 		int         m_unknownAScar;
 		int			m_unknownCurrDensity;
 		int			triangleNum;
 
-		Qcx_mat		CoeffiMat;
-		/*Qmat		S;
-		Qmat		T;
-		Qmat		Q;
-		Qmat		Area;*/
+		Qsp_cx_mat	CoeffiMat;
 		Qcx_vec		Asca_Jsk;
 		Qcx_vec		V;
 
+		EigenSparse_cx_mat		Eigen_CoeffiMat;
+		EigenVector_cx_vec		Eigen_Asca_Jsk;
+		EigenVector_cx_vec		Eigen_V;
+		EigenTriplet_cx			Eigen_Triplet;
+
 		MeshPointer pMesh;
+
 		//Qofstream   rad_data_, rcs_data_;
 
 	public:
@@ -44,6 +47,7 @@ namespace FEM {
 		void		fillCoeffiMatQ();
 		void		fillCoeffiMatArea();
 		void		fillV();
+		void		fillEigenMatrix();
 		//bool        writeZIVData();
 	};
 	inline int ThreePhaseAC::getUnknownAScarNum()const

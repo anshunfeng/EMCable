@@ -39,5 +39,5 @@ namespace component {
 	{
 		return (y < x ? x : y);
 	}
-
+	
 }

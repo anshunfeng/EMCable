@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{4823362F-A5AB-486E-831C-EF18812CB81D}</ProjectGuid>
     <RootNamespace>EMComponent</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -71,13 +71,19 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExecutablePath>C:\armadillo\include;$(ExecutablePath)</ExecutablePath>
     <IncludePath>C:\armadillo\lib_win64;C:\armadillo\include;C:\armadillo\examples\lib_win64;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\armadillo\lib_win64;C:\armadillo\examples\lib_win64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\armadillo\lib_win64;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ExecutablePath>C:\eigen-3.3.4;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>C:\eigen-3.3.4;$(IncludePath)</IncludePath>
+    <SourcePath>C:\eigen-3.3.4;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>D:\Important Documents\cable_math\EMCable\EMComponent\eigen-3.3.4;C:\eigen-3.3.4;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -114,6 +120,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\eigen-3.3.4;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

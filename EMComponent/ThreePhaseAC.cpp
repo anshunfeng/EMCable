@@ -8,26 +8,23 @@
 
 using namespace component;
 using namespace FEM;
-using namespace iml;
+using namespace Eigen;
 using std::setw;
 
 ThreePhaseAC::ThreePhaseAC()
 {
-
 }
-
 ThreePhaseAC::~ThreePhaseAC()
 {
 	tool::totalTime(m_log);
 }
-void  ThreePhaseAC::init(const component::Loader* loader, Qstring & _stateInfo)
+
+void		ThreePhaseAC::init(const component::Loader* loader, Qstring & _stateInfo)
 {
 	EM::init(loader, _stateInfo);
 	if (m_isThreePhase)
 	{
-		
 		m_dir = tool::creatFolder(m_dir, m_foldername + "_ThreePhaseSolver");
-		
 	}
 	else
 	{
@@ -35,7 +32,6 @@ void  ThreePhaseAC::init(const component::Loader* loader, Qstring & _stateInfo)
 		return;
 	}
 	auto log_name = m_dir + "_" + "runtime_log.txt";
-
 	m_log.open(log_name);
 	if (!m_log)
 	{
@@ -51,345 +47,55 @@ void  ThreePhaseAC::init(const component::Loader* loader, Qstring & _stateInfo)
 	m_unknownAScar = pMesh->getVertexUnkownNum();
 	m_unknownCurrDensity = loader->getCurrDomainsNum();
 	triangleNum = pMesh->getTriangleNum();
+	J0_W_Delta = J0*PI2*m_threephase.m_freq*m_threephase.m_mentalSigma;
 	//Õ¯∏Ò–≈œ¢
 	reportMeshInfo(m_log);
 	//–¥»Îinit∫ƒ ±
 	tool::elapsedTime(m_log, "end init");
 }
-void        ThreePhaseAC::solve()
+void		ThreePhaseAC::fillV()
 {
-	CoeffiMat.zeros(m_unknownAScar + m_unknownCurrDensity, m_unknownAScar + m_unknownCurrDensity);
-	Qcout << setw(30) << "Filling V matrix:";
-	fillV();
-	tool::elapsedTime(m_log, "end fillV");
-	Qcout << std::endl;
-
-	Qcout << setw(30) << "Filling Area matrix:";
-	fillCoeffiMatArea();
-	tool::elapsedTime(m_log, "end fillArea");
-	Qcout << std::endl;
-
-	Qcout << setw(30) << "Filling Q matrix:";
-	fillCoeffiMatQ();
-	Qcout << std::endl;
-	tool::elapsedTime(m_log, "end fillQ");
-
-
-	/*Qcout << setw(30) << "Filling S_Tdiag matrix:";
-	fillCoeffiMatSandTdiag();
-	Qcout << std::endl;
-	tool::elapsedTime(m_log, "end fillSandTdiag");
-*/
-	Qcout << setw(30) << "Filling S_T matrix:";
-	fillCoeffiMatSandT();
-	Qcout << std::endl;
-	tool::elapsedTime(m_log, "end fillSandT");
-
-	Qcout << setw(30) << "Solving matrix equation:";
-
-	/*Qcx_mat CoeffiMat;
-	CoeffiMat.zeros(m_unknownAScar + m_unknownCurrDensity, m_unknownAScar + m_unknownCurrDensity);
-	CoeffiMat(arma::span(0, m_unknownAScar - 1), arma::span(0, m_unknownAScar - 1)) =
-	(1/(mu0))*Complex(1, 0)*S + J0*PI2*m_threephase.m_freq*m_threephase.m_mentalSigma*T;
-	CoeffiMat(arma::span(0, m_unknownAScar - 1), arma::span(m_unknownAScar, m_unknownAScar + m_unknownCurrDensity - 1)) =
-	-J0*PI2*m_threephase.m_freq*m_threephase.m_mentalSigma*Q;
-	CoeffiMat(arma::span(m_unknownAScar, m_unknownAScar + m_unknownCurrDensity - 1), arma::span(0, m_unknownAScar - 1)) =
-	-J0*PI2*m_threephase.m_freq*m_threephase.m_mentalSigma*trans(Q);
-	CoeffiMat(arma::span(m_unknownAScar, m_unknownAScar + m_unknownCurrDensity - 1), arma::span(m_unknownAScar, m_unknownAScar + m_unknownCurrDensity - 1)) =
-	J0*PI2*m_threephase.m_freq*m_threephase.m_mentalSigma*Area;*/
-	/*int _iterNum;
-	if (!CGNE(Asca_Jsk, CoeffiMat, V, 1e-6, 5, _iterNum))
-	{
-		Qcerr << "ERROR: fail solving CoeffiMat*Asca_Jsk = V" << std::endl;
-		return;
-	}*/
-
-	if (!arma::solve(Asca_Jsk, CoeffiMat, V, arma::solve_opts::fast))
-	{
-	Qcerr << "ERROR: fail solving CoeffiMat*Asca_Jsk = V" << std::endl;
-	return;
-	}
-	Qcout  << " finished" << std::endl;
-	tool::elapsedTime(m_log, "end solve");
-
+	V.zeros(m_unknownAScar + m_unknownCurrDensity);
+	value_t currentA = m_threephase.m_amplitude*cos(m_threephase.m_phase*DegreesToRadians);
+	value_t currentB = m_threephase.m_amplitude*cos(m_threephase.m_phase*DegreesToRadians - 120 * DegreesToRadians);
+	value_t currentC = m_threephase.m_amplitude*cos(m_threephase.m_phase*DegreesToRadians - 240 * DegreesToRadians);
+	V(m_unknownAScar) = currentA;
+	V(m_unknownAScar + 1) = currentB;
+	V(m_unknownAScar + 2) = currentC;
 }
-void        ThreePhaseAC::output()
+void		ThreePhaseAC::fillCoeffiMatArea()
 {
-	Qcout << setw(30) << "Output results:";
-
-	// ‰≥ˆæÿ’Û
-	/*Qofstream outputArea(m_dir + "_matrix_Area.txt");
-	if (outputArea.fail())
+	std::set<int>::iterator pos = _m_currentDomains.begin();
+	for (int i = 0; i < m_unknownCurrDensity; ++i)
 	{
-		Qcout << "fail creating matrix_Area.txt" << std::endl;
-	}
-	Area.save(outputArea, arma::arma_ascii);
-
-	Qofstream outputQ(m_dir + "_matrix_Q.txt");
-	if (outputQ.fail())
-	{
-		Qcout << "fail creating matrix_Q.txt" << std::endl;
-	}
-	Q.save(outputQ, arma::arma_ascii);
-
-
-	Qofstream outputS(m_dir + "_matrix_S.txt");
-	if (outputS.fail())
-	{
-		Qcout << "fail creating matrix_S.txt" << std::endl;
-	}
-	S.save(outputS, arma::arma_ascii);
-
-
-	Qofstream outputT(m_dir + "_matrix_T.txt");
-	if (outputT.fail())
-	{
-		Qcout << "fail creating matrix_T.txt" << std::endl;
-	}
-	T.save(outputT, arma::arma_ascii);
-
-
-	Qofstream outputV(m_dir + "_matrix_V.txt");
-	if (outputV.fail())
-	{
-		Qcout << "fail creating matrix_V.txt" << std::endl;
-	}
-	V.save(outputV, arma::arma_ascii);*/
-
-	auto result_Asca_name = m_dir + "_" + "results_Asca.txt";
-	Qofstream result_Asca;
-	result_Asca.open(result_Asca_name);
-	if (!result_Asca)
-	{
-		Qcout << "fail creating results_Asca.txt" << std::endl;
-	}
-	
-	for (int i = 0; i < Asca_Jsk.size() - 3; i++)
-	{
-			int _index = pMesh->getUnkownVertexIndex(i);
-			result_Asca << _index << '\t' << pMesh->getVertex(_index).x << '\t' << pMesh->getVertex(_index).y << '\t' << abs(Asca_Jsk(i)) << std::endl;
-	}
-	for (int j = 0; j < pMesh->getVertexNum(); j++)
-	{
-		if (pMesh->isBoundaryPoint(j))
+		for (int j = 0; j < triangleNum; ++j)
 		{
-			result_Asca << j << '\t' << pMesh->getVertex(j).x << '\t' << pMesh->getVertex(j).y << '\t' << 0 << std::endl;
-		}
-	}
-
-	result_Asca.close();
-	Qcout << "finished" << std::endl;
-	tool::elapsedTime(m_log, "end output");
-}
-void        ThreePhaseAC::clear()
-{
-	/*S.reset();
-	T.reset();
-	Q.reset();
-	Area.reset();*/
-	CoeffiMat.reset();
-	V.reset();
-	Asca_Jsk.clear();
-	pMesh->clear();
-}
-void        ThreePhaseAC::reportMeshInfo(Qostream& strm)const
-{
-	pMesh->reportInfo(strm);
-}
-//void		ThreePhaseAC::fillCoeffiMatSandTdiag()
-//{
-//
-//	//S.zeros(m_unknownAScar, m_unknownAScar);
-//	//T.zeros(m_unknownAScar, m_unknownAScar);
-//	for (int k = 0; k < triangleNum; k++)
-//	{
-//		Triangle tri = pMesh->getTriangleRef(k);
-//		int _nA, _nB, _nC;
-//		tri.getnAnBnC(_nA, _nB, _nC);
-//		value_t treArea = tri.getTriArea();
-//
-//		bool isDielectric = _m_dielectricDomains.find(tri.getSunbdomainID()) != _m_dielectricDomains.end();
-//		bool isCondunctor = !(isDielectric);
-//		Complex tempResultT = J0*PI2*m_threephase.m_freq*m_threephase.m_mentalSigma*(treArea / 12);
-//		
-//		/*int _nA = pMesh->getTriangleRef(k).getnA();
-//		int _nB = pMesh->getTriangleRef(k).getnB();
-//		int _nC = pMesh->getTriangleRef(k).getnC();*/
-//
-//		if (!(pMesh->isBoundaryPoint(_nA)))
-//		{
-//			int _orderA = pMesh->getUnknownVertexOderbyIndex(_nA);
-//			value_t na1, na2, na3;
-//			tri.getna123(na1, na2, na3);
-//			/*value_t na2 = tri.getna2();
-//			value_t na3 = tri.getna3();*/
-//			value_t tempResultS = static_cast<value_t>((1 / (mu0))*(0.25 / (treArea))*(na2*na2 + na3*na3));
-//			CoeffiMat(_orderA, _orderA) += tempResultS;
-//			if (isCondunctor)
-//			{
-//				CoeffiMat(_orderA, _orderA) += tempResultT;
-//			}
-//			
-//		}
-//		if (!(pMesh->isBoundaryPoint(_nB)))
-//		{
-//			int _orderB = pMesh->getUnknownVertexOderbyIndex(_nB);
-//			value_t nb1, nb2, nb3;
-//			tri.getnb123(nb1, nb2, nb3);
-//			/*value_t nb2 = pMesh->getTriangleRef(k).getnb2();
-//			value_t nb3 = pMesh->getTriangleRef(k).getnb3();*/
-//			value_t tempResultS = static_cast<value_t>((1 / (mu0))*(0.25 / (treArea))*(nb2*nb2 + nb3*nb3));
-//			CoeffiMat(_orderB, _orderB) += tempResultS;
-//			if (isCondunctor)
-//			{
-//				CoeffiMat(_orderB, _orderB) += tempResultT;
-//			}
-//		}
-//		if (!(pMesh->isBoundaryPoint(_nC)))
-//		{
-//			int _orderC = pMesh->getUnknownVertexOderbyIndex(_nC);
-//			value_t nc1, nc2, nc3;
-//			tri.getnc123(nc1, nc2, nc3);
-//			/*value_t nc2 = pMesh->getTriangleRef(k).getnc2();
-//			value_t nc3 = pMesh->getTriangleRef(k).getnc3();*/
-//			value_t tempResultS = static_cast<value_t>((1 / (mu0))*(0.25 / (treArea))*(nc2*nc2 + nc3*nc3));
-//			CoeffiMat(_orderC, _orderC) += tempResultS;
-//			if (isCondunctor)
-//			{
-//				CoeffiMat(_orderC, _orderC) += tempResultT;
-//			}
-//		}
-//
-//	}
-//
-//}
-void		ThreePhaseAC::fillCoeffiMatSandT()
-{
-	for (int k = 0; k < triangleNum; k++)
-	{
-		Triangle tri = pMesh->getTriangleRef(k);
-		int _nA, _nB, _nC;
-		tri.getnAnBnC(_nA, _nB, _nC);
-		value_t treArea = tri.getTriArea();
-		/*int _nA = pMesh->getTriangleRef(k).getnA();
-		int _nB = pMesh->getTriangleRef(k).getnB();
-		int _nC = pMesh->getTriangleRef(k).getnC();*/
-		bool nA_isBoundary = pMesh->isBoundaryPoint(_nA);
-		bool nB_isBoundary = pMesh->isBoundaryPoint(_nB);
-		bool nC_isBoundary = pMesh->isBoundaryPoint(_nC);
-
-		bool isDielectric = _m_dielectricDomains.find(tri.getSunbdomainID()) != _m_dielectricDomains.end();
-		bool isCondunctor = !(isDielectric);
-		Complex tempResultT = J0*PI2*m_threephase.m_freq*m_threephase.m_mentalSigma*(treArea / 12);
-
-		value_t na1, na2, na3, nb1, nb2, nb3, nc1, nc2, nc3;
-		int _orderA, _orderB, _orderC;
-		if (!nA_isBoundary)
-		{
-			_orderA = pMesh->getUnknownVertexOderbyIndex(_nA);
-			tri.getna123(na1, na2, na3);
-			value_t tempResultS = static_cast<value_t>((1 / (mu0))*(0.25 / (treArea))*(na2*na2 + na3*na3));
-			CoeffiMat(_orderA, _orderA) += tempResultS;
-			if (isCondunctor)
+			if (pMesh->getTriangleRef(j).getSunbdomainID() == *pos)
 			{
-				CoeffiMat(_orderA, _orderA) += tempResultT;
+				CoeffiMat(m_unknownAScar + i, m_unknownAScar + i) += J0_W_Delta*pMesh->getTriangleRef(j).getTriArea();
 			}
 		}
-		if (!nB_isBoundary)
-		{
-			_orderB = pMesh->getUnknownVertexOderbyIndex(_nB);
-			tri.getnb123(nb1, nb2, nb3);
-			value_t tempResultS = static_cast<value_t>((1 / (mu0))*(0.25 / (treArea))*(nb2*nb2 + nb3*nb3));
-			CoeffiMat(_orderB, _orderB) += tempResultS;
-			if (isCondunctor)
-			{
-				CoeffiMat(_orderB, _orderB) += tempResultT;
-			}
-		}
-		if (!nC_isBoundary)
-		{
-			_orderC = pMesh->getUnknownVertexOderbyIndex(_nC);
-			tri.getnc123(nc1, nc2, nc3);
-			value_t tempResultS = static_cast<value_t>((1 / (mu0))*(0.25 / (treArea))*(nc2*nc2 + nc3*nc3));
-			CoeffiMat(_orderC, _orderC) += tempResultS;
-			if (isCondunctor)
-			{
-				CoeffiMat(_orderC, _orderC) += tempResultT;
-			}
-		}
-		if ((!nA_isBoundary) && (!nB_isBoundary))
-		{
-			//int _orderA = pMesh->getUnknownVertexOderbyIndex(_nA);
-			//int _orderB = pMesh->getUnknownVertexOderbyIndex(_nB);
-			value_t tempResultS = static_cast<value_t>((1 / (mu0))*(0.25 / (treArea))*(na2*nb2 + na3*nb3));
-
-			CoeffiMat(_orderA, _orderB) += tempResultS;
-			CoeffiMat(_orderB, _orderA) += tempResultS;
-			if (isCondunctor)
-			{
-				CoeffiMat(_orderA, _orderB) += tempResultT;
-				CoeffiMat(_orderB, _orderA) += tempResultT;
-			}
-		}//AB
-
-		if ((!nA_isBoundary) && (!nC_isBoundary))
-		{
-			//int _orderA = pMesh->getUnknownVertexOderbyIndex(_nA);
-			//int _orderC = pMesh->getUnknownVertexOderbyIndex(_nC);
-			value_t tempResultS = static_cast<value_t>((1 / (mu0))*(0.25 / (treArea))*(na2*nc2 + na3*nc3));
-
-			CoeffiMat(_orderA, _orderC) += tempResultS;
-			CoeffiMat(_orderC, _orderA) += tempResultS;
-			if (isCondunctor)
-			{
-				CoeffiMat(_orderA, _orderC) += tempResultT;
-				CoeffiMat(_orderC, _orderA) += tempResultT;
-			}
-
-		}//AC
-
-		if ((!nB_isBoundary) && (!nC_isBoundary))
-		{
-			//int _orderB = pMesh->getUnknownVertexOderbyIndex(_nB);
-			//int _orderC = pMesh->getUnknownVertexOderbyIndex(_nC);
-			value_t tempResultS = static_cast<value_t>((1 / (mu0))*(0.25 / (treArea))*(nb2*nc2 + nb3*nc3));
-
-			CoeffiMat(_orderB, _orderC) += tempResultS;
-			CoeffiMat(_orderC, _orderB) += tempResultS;
-			if (isCondunctor)
-			{
-				CoeffiMat(_orderB, _orderC) += tempResultT;
-				CoeffiMat(_orderC, _orderB) += tempResultT;
-			}
-		}
+		++pos;
 	}
+
 }
-		
 void		ThreePhaseAC::fillCoeffiMatQ()
 {
-//	Q.zeros(m_unknownAScar, m_unknownCurrDensity);
-
 	int count = 0;
 	for (auto pos = _m_currentDomains.begin(); pos != _m_currentDomains.end(); ++pos)
 	{
-		for (int k = 0; k < triangleNum; k++)
+		for (int k = 0; k < triangleNum; ++k)
 		{
-			Triangle tri = pMesh->getTriangleRef(k);
-			int _nA, _nB, _nC;
-			tri.getnAnBnC(_nA, _nB, _nC);
-			value_t treArea = tri.getTriArea();
-
-
-			/*int _nA = pMesh->getTriangleRef(k).getnA();
-			int _nB = pMesh->getTriangleRef(k).getnB();
-			int _nC = pMesh->getTriangleRef(k).getnC();*/
-
-			bool nA_isBoundary = pMesh->isBoundaryPoint(_nA);
-			bool nB_isBoundary = pMesh->isBoundaryPoint(_nB);
-			bool nC_isBoundary = pMesh->isBoundaryPoint(_nC);
-			if (tri.getSunbdomainID() == *pos)
+			if (pMesh->getTriangleRef(k).getSunbdomainID() == *pos)
 			{
-				Complex tempQ = -J0*PI2*m_threephase.m_freq*m_threephase.m_mentalSigma*(treArea / 3);
+				Triangle& tri = pMesh->getTriangleRef(k);
+				int _nA, _nB, _nC;
+				tri.getnAnBnC(_nA, _nB, _nC);
+				bool nA_isBoundary = pMesh->isBoundaryPoint(_nA);
+				bool nB_isBoundary = pMesh->isBoundaryPoint(_nB);
+				bool nC_isBoundary = pMesh->isBoundaryPoint(_nC);
+
+				Complex tempQ = -J0_W_Delta*(tri.getTriArea() / 3);
 				if (!nA_isBoundary)
 				{
 					int _orderA = pMesh->getUnknownVertexOderbyIndex(_nA);
@@ -409,37 +115,229 @@ void		ThreePhaseAC::fillCoeffiMatQ()
 					CoeffiMat(m_unknownAScar + count, _orderC) += tempQ;
 				}
 			}
-		}
+		}//for k
 		++count;
-	}	
+	}//for pos
 }
-void		ThreePhaseAC::fillCoeffiMatArea()
+void		ThreePhaseAC::fillCoeffiMatSandT()
 {
-	//Area.zeros(m_unknownCurrDensity, m_unknownCurrDensity);
-	std::set<int>::iterator pos = _m_currentDomains.begin();
-	for (int i = 0; i < m_unknownCurrDensity; i++)
+	for (int k = 0; k < triangleNum; k++)
 	{
-		for (int j = 0; j < triangleNum; j++)
+		Triangle tri = pMesh->getTriangleRef(k);
+		int _nA, _nB, _nC;
+		tri.getnAnBnC(_nA, _nB, _nC);
+		value_t treArea = tri.getTriArea();
+		bool nA_isBoundary = pMesh->isBoundaryPoint(_nA);
+		bool nB_isBoundary = pMesh->isBoundaryPoint(_nB);
+		bool nC_isBoundary = pMesh->isBoundaryPoint(_nC);
+
+		bool isDielectric = _m_dielectricDomains.find(tri.getSunbdomainID()) != _m_dielectricDomains.end();
+		bool isCondunctor = !(isDielectric);
+		Complex tempResultT = J0_W_Delta*(treArea / 12);
+		value_t tempSCoeffi = (1 / (mu0))*(0.25 / (treArea));
+
+		value_t na1, na2, na3, nb1, nb2, nb3, nc1, nc2, nc3;
+		int _orderA, _orderB, _orderC;
+
+		if (!nA_isBoundary)
 		{
-			Triangle tri = pMesh->getTriangleRef(j);
-			value_t treArea = tri.getTriArea();
-			if (tri.getSunbdomainID() == *pos)
+			_orderA = pMesh->getUnknownVertexOderbyIndex(_nA);
+
+			tri.getna123(na1, na2, na3);
+			value_t tempResultS = tempSCoeffi*(na2*na2 + na3*na3);
+			CoeffiMat(_orderA, _orderA) += tempResultS;
+			if (isCondunctor)
 			{
-				CoeffiMat(m_unknownAScar + i, m_unknownAScar + i) += J0*PI2*m_threephase.m_freq*m_threephase.m_mentalSigma*(treArea);
+				CoeffiMat(_orderA, _orderA) += tempResultT;
 			}
 		}
-		++pos;
-	}
+		if (!nB_isBoundary)
+		{
+			_orderB = pMesh->getUnknownVertexOderbyIndex(_nB);
+			tri.getnb123(nb1, nb2, nb3);
+			value_t tempResultS = tempSCoeffi*(nb2*nb2 + nb3*nb3);
+			CoeffiMat(_orderB, _orderB) += tempResultS;
+			if (isCondunctor)
+			{
+				CoeffiMat(_orderB, _orderB) += tempResultT;
+			}
+		}
+		if (!nC_isBoundary)
+		{
+			_orderC = pMesh->getUnknownVertexOderbyIndex(_nC);
+			tri.getnc123(nc1, nc2, nc3);
+			value_t tempResultS = tempSCoeffi*(nc2*nc2 + nc3*nc3);
+			CoeffiMat(_orderC, _orderC) += tempResultS;
+			if (isCondunctor)
+			{
+				CoeffiMat(_orderC, _orderC) += tempResultT;
+			}
+		}
+		if ((!nA_isBoundary) && (!nB_isBoundary))
+		{
+			value_t tempResultS = tempSCoeffi*(na2*nb2 + na3*nb3);
+
+			CoeffiMat(_orderA, _orderB) += tempResultS;
+			CoeffiMat(_orderB, _orderA) += tempResultS;
+			if (isCondunctor)
+			{
+				CoeffiMat(_orderA, _orderB) += tempResultT;
+				CoeffiMat(_orderB, _orderA) += tempResultT;
+			}
+		}//AB
+
+		if ((!nA_isBoundary) && (!nC_isBoundary))
+		{
+			value_t tempResultS = tempSCoeffi*(na2*nc2 + na3*nc3);
+
+			CoeffiMat(_orderA, _orderC) += tempResultS;
+			CoeffiMat(_orderC, _orderA) += tempResultS;
+			if (isCondunctor)
+			{
+				CoeffiMat(_orderA, _orderC) += tempResultT;
+				CoeffiMat(_orderC, _orderA) += tempResultT;
+			}
+
+		}//AC
+
+		if ((!nB_isBoundary) && (!nC_isBoundary))
+		{
+			value_t tempResultS = tempSCoeffi*(nb2*nc2 + nb3*nc3);
+
+			CoeffiMat(_orderB, _orderC) += tempResultS;
+			CoeffiMat(_orderC, _orderB) += tempResultS;
+			if (isCondunctor)
+			{
+				CoeffiMat(_orderB, _orderC) += tempResultT;
+				CoeffiMat(_orderC, _orderB) += tempResultT;
+			}
+		}
+	}//for k
 
 }
-void		ThreePhaseAC::fillV()
+void		ThreePhaseAC::fillEigenMatrix()
 {
-	V.zeros(m_unknownAScar + m_unknownCurrDensity);
-	value_t currentA = m_threephase.m_amplitude*cos(m_threephase.m_phase*DegreesToRadians);
-	value_t currentB = m_threephase.m_amplitude*cos(m_threephase.m_phase*DegreesToRadians - 120 * DegreesToRadians);;
-	value_t currentC = m_threephase.m_amplitude*cos(m_threephase.m_phase*DegreesToRadians - 240 * DegreesToRadians);;
-	V(m_unknownAScar) = currentA;
-	V(m_unknownAScar + 1) = currentB;
-	V(m_unknownAScar + 2) = currentC;
+	Eigen_CoeffiMat.resize(m_unknownAScar + m_unknownCurrDensity, m_unknownAScar + m_unknownCurrDensity);
+	Eigen_V.resize(m_unknownAScar + m_unknownCurrDensity);
+	for (auto it = CoeffiMat.begin(); it != CoeffiMat.end(); it++)
+	{
+		Eigen_Triplet.emplace_back(static_cast<int>(it.col()), static_cast<int>(it.row()), *it);
+	}
+	//Qcout << " bug" << std::endl;
+	Eigen_CoeffiMat.setFromTriplets(Eigen_Triplet.begin(), Eigen_Triplet.end());
+	int count = 0;
+	for (auto _it = V.begin(); _it != V.end(); _it++)
+	{
+		Eigen_V(count) = *_it;
+		++count;
+	}
 }
+
+void        ThreePhaseAC::solve()
+{
+	CoeffiMat.zeros(m_unknownAScar + m_unknownCurrDensity, m_unknownAScar + m_unknownCurrDensity);
+	Qcout << setw(30) << "Filling V matrix:";
+	fillV();
+	tool::elapsedTime(m_log, "end fillV");
+	Qcout << std::endl;
+
+	Qcout << setw(30) << "Filling Area matrix:";
+	fillCoeffiMatArea();
+	tool::elapsedTime(m_log, "end fillArea");
+	Qcout << std::endl;
+
+	Qcout << setw(30) << "Filling Q matrix:";
+	fillCoeffiMatQ();
+	Qcout << std::endl;
+	tool::elapsedTime(m_log, "end fillQ");
+
+	Qcout << setw(30) << "Filling S_T matrix:";
+	fillCoeffiMatSandT();
+	Qcout << std::endl;
+	tool::elapsedTime(m_log, "end fillSandT");
+
+	Qcout << setw(30) << "Filling fillEigen matrix:";
+	fillEigenMatrix();
+	Qcout << std::endl;
+	tool::elapsedTime(m_log, "end fillEigen matrix");
+
+	Qcout << setw(30) << "Solving matrix equation:";
+
+	//SuperLU Method
+	SparseLU<SparseMatrix<Complex, ColMajor>, COLAMDOrdering<int> >   solver;
+	// Compute the ordering permutation vector from the structural pattern of A
+	solver.analyzePattern(Eigen_CoeffiMat);
+	// Compute the numerical factorization 
+	solver.factorize(Eigen_CoeffiMat);
+	//Use the factors to solve the linear system 
+	Eigen_Asca_Jsk.resize(m_unknownAScar + m_unknownCurrDensity);
+	Eigen_Asca_Jsk = solver.solve(Eigen_V);
+
+
+
+	//// QR Method
+	//Eigen_Asca_Jsk.resize(m_unknownAScar + m_unknownCurrDensity);
+	//SparseQR<SparseMatrix<Complex>, COLAMDOrdering<int>> QR;
+	//QR.compute(Eigen_CoeffiMat);
+	//
+	//Eigen_Asca_Jsk = QR.solve(Eigen_V);
+
+	Qcout  << " finished" << std::endl;
+	tool::elapsedTime(m_log, "end solve");
+
+}
+void        ThreePhaseAC::output()
+{
+	Qcout << setw(30) << "Output results:";
+
+	//// ‰≥ˆœ° Ëæÿ’Û
+	//Qofstream outputSparseMatrix(m_dir + "_matrix_sparse.txt");
+	//if (outputSparseMatrix.fail())
+	//{
+	//	Qcout << "fail creating matrix_Area.txt" << std::endl;
+	//}
+	//CoeffiMat.quiet_save(outputSparseMatrix, arma::coord_ascii);
+	
+	auto Eigen_result_Asca_name = m_dir + "_" + "Eigen_results_Asca.txt";
+	Qofstream Eigen_result_Asca;
+	Eigen_result_Asca.open(Eigen_result_Asca_name);
+	if (!Eigen_result_Asca)
+	{
+		Qcout << "fail creating Eigen_results_Asca.txt" << std::endl;
+	}
+	
+	for (int i = 0; i < Eigen_Asca_Jsk.size() - 3; i++)
+	{
+			int _index = pMesh->getUnkownVertexIndex(i);
+			Eigen_result_Asca << _index << '\t' << pMesh->getVertex(_index).x << '\t' << pMesh->getVertex(_index).y << '\t' << abs(Eigen_Asca_Jsk(i)) << std::endl;
+	}
+	for (int j = 0; j < pMesh->getVertexNum(); j++)
+	{
+		if (pMesh->isBoundaryPoint(j))
+		{
+			Eigen_result_Asca << j << '\t' << pMesh->getVertex(j).x << '\t' << pMesh->getVertex(j).y << '\t' << 0 << std::endl;
+		}
+	}
+	Eigen_result_Asca.close();
+
+	Qcout << "finished" << std::endl;
+	tool::elapsedTime(m_log, "end output");
+}
+void        ThreePhaseAC::clear()
+{
+	/*S.reset();
+	T.reset();
+	Q.reset();
+	Area.reset();*/
+	CoeffiMat.reset();
+	V.reset();
+	Asca_Jsk.reset();
+	
+	pMesh->clear();
+}
+void        ThreePhaseAC::reportMeshInfo(Qostream& strm)const
+{
+	pMesh->reportInfo(strm);
+}
+		
 
