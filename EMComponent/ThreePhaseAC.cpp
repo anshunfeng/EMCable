@@ -289,19 +289,192 @@ void        ThreePhaseAC::solve()
 void        ThreePhaseAC::output()
 {
 	Qcout << setw(30) << "Output results:";
+	std::map<int, Complex> currDomainJs;
+	int A_Jsize = static_cast<int>(Eigen_Asca_Jsk.size());
+	int _count = 0;
+	for (auto it = _m_currentDomains.begin(); it != _m_currentDomains.end(); it++)
+	{
+		currDomainJs.insert(std::make_pair(*it, Eigen_Asca_Jsk(A_Jsize + _count - 3)));
+			++_count;
+	}
+	//use for matlab patching  total current including eddy current and source current
+	auto patch_NoAir_total_J = m_dir + "_" + "Eigen_results_patch_NoAir_total_J.txt";
+	auto patch_NoAir_eddy_J = m_dir + "_" + "Eigen_results_patch_NoAir_eddy_J.txt";
+	Qofstream out1;
+	Qofstream out2;
+	out1.open(patch_NoAir_total_J);
+	out2.open(patch_NoAir_eddy_J);
+	if (!out1)
+	{
+		Qcout << "fail creating Eigen_results_patch_NoAir_total_J.txt" << std::endl;
+	}
+	if (!out2)
+	{
+		Qcout << "fail creating Eigen_results_patch_NoAir_eddy_J.txt" << std::endl;
+	}
+	std::stringstream nodeX1, nodeY1, nodeX2, nodeY2, value_total_J, value_eddy_J;
+	for (int k = 0; k < triangleNum; k++)
+	{
+		Triangle& tri = pMesh->getTriangleRef(k);
+		int triId = tri.getSunbdomainID();
+		if (triId != 1)
+		{
+			int _nA, _nB, _nC;
+			tri.getnAnBnC(_nA, _nB, _nC);
+			if (_m_dielectricDomains.find(triId) != _m_dielectricDomains.end())
+			{
+				nodeX1 << pMesh->getVertex(_nA).x << '\t' << pMesh->getVertex(_nB).x << '\t' << pMesh->getVertex(_nC).x << '\n';
+				nodeY1 << pMesh->getVertex(_nA).y << '\t' << pMesh->getVertex(_nB).y << '\t' << pMesh->getVertex(_nC).y << '\n';
+				nodeX2 << pMesh->getVertex(_nA).x << '\t' << pMesh->getVertex(_nB).x << '\t' << pMesh->getVertex(_nC).x << '\n';
+				nodeY2 << pMesh->getVertex(_nA).y << '\t' << pMesh->getVertex(_nB).y << '\t' << pMesh->getVertex(_nC).y << '\n';
 
-	////Êä³öÏ¡Êè¾ØÕó
-	//Qofstream outputSparseMatrix(m_dir + "_matrix_sparse.txt");
-	//if (outputSparseMatrix.fail())
-	//{
-	//	Qcout << "fail creating matrix_Area.txt" << std::endl;
-	//}
-	//CoeffiMat.quiet_save(outputSparseMatrix, arma::coord_ascii);
-	
+				value_total_J << 0 << '\t' << 0 << '\t' << 0 << '\n';
+				value_eddy_J << 0 << '\t' << 0 << '\t' << 0 << '\n';
+			}
+			else
+			{
+				if (_m_currentDomains.find(triId) != _m_currentDomains.end())
+				{
+					nodeX1 << pMesh->getVertex(_nA).x << '\t' << pMesh->getVertex(_nB).x << '\t' << pMesh->getVertex(_nC).x << '\n';
+					nodeY1 << pMesh->getVertex(_nA).y << '\t' << pMesh->getVertex(_nB).y << '\t' << pMesh->getVertex(_nC).y << '\n';
+					nodeX2 << pMesh->getVertex(_nA).x << '\t' << pMesh->getVertex(_nB).x << '\t' << pMesh->getVertex(_nC).x << '\n';
+					nodeY2 << pMesh->getVertex(_nA).y << '\t' << pMesh->getVertex(_nB).y << '\t' << pMesh->getVertex(_nC).y << '\n';
+
+					//total current
+					value_t tmpValueA_total_J = abs(-J0_W_Delta*Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nA)) + J0_W_Delta*currDomainJs.find(triId)->second);
+					value_t tmpValueB_total_J = abs(-J0_W_Delta*Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nB)) + J0_W_Delta*currDomainJs.find(triId)->second);
+					value_t tmpValueC_total_J = abs(-J0_W_Delta*Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nC)) + J0_W_Delta*currDomainJs.find(triId)->second);
+					//eddy current
+					value_t tmpValueA_eddy_J = abs(-J0_W_Delta*Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nA)));
+					value_t tmpValueB_eddy_J = abs(-J0_W_Delta*Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nB)));
+					value_t tmpValueC_eddy_J = abs(-J0_W_Delta*Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nC)));
+					value_total_J << tmpValueA_total_J << '\t' << tmpValueB_total_J << '\t' << tmpValueC_total_J << '\n';
+					value_eddy_J << tmpValueA_eddy_J << '\t' << tmpValueB_eddy_J << '\t' << tmpValueC_eddy_J << '\n';
+				}
+				else
+				{
+					nodeX1 << pMesh->getVertex(_nA).x << '\t' << pMesh->getVertex(_nB).x << '\t' << pMesh->getVertex(_nC).x << '\n';
+					nodeY1 << pMesh->getVertex(_nA).y << '\t' << pMesh->getVertex(_nB).y << '\t' << pMesh->getVertex(_nC).y << '\n';
+					nodeX2 << pMesh->getVertex(_nA).x << '\t' << pMesh->getVertex(_nB).x << '\t' << pMesh->getVertex(_nC).x << '\n';
+					nodeY2 << pMesh->getVertex(_nA).y << '\t' << pMesh->getVertex(_nB).y << '\t' << pMesh->getVertex(_nC).y << '\n';
+
+					value_t tmpValueA = abs(-J0_W_Delta*Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nA)));
+					value_t tmpValueB = abs(-J0_W_Delta*Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nB)));
+					value_t tmpValueC = abs(-J0_W_Delta*Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nC)));
+					value_total_J << tmpValueA << '\t' << tmpValueB << '\t' << tmpValueC << '\n';
+					value_eddy_J << tmpValueA << '\t' << tmpValueB << '\t' << tmpValueC << '\n';
+				}
+			}
+		}
+	}
+	out1 << nodeX1.rdbuf() << nodeY1.rdbuf() << value_total_J.rdbuf();
+	//out2 <<  value_eddy_J.rdbuf();
+	out2 << nodeX2.rdbuf() << nodeY2.rdbuf() << value_eddy_J.rdbuf();
+	//Qcout << "flags" << '\n';
+	out1.close();
+	out2.close();
+
+	//use for matlab patching No air domains' Asca
+	auto patch_NoAir = m_dir + "_" + "Eigen_results_patch_NoAir_Asca.txt";
+	Qofstream out3;
+	out3.open(patch_NoAir);
+	if (!out3)
+	{
+		Qcout << "fail creating Eigen_results_patch_NoAir_Asca.txt" << std::endl;
+	}
+	std::stringstream NodeX, NodeY, Value;
+	for (int k = 0; k < triangleNum; k++)
+	{
+		Triangle& tri = pMesh->getTriangleRef(k);
+		if (tri.getSunbdomainID() != 1)
+		{
+			int _nA, _nB, _nC;
+			tri.getnAnBnC(_nA, _nB, _nC);
+			bool nA_isBoundary = pMesh->isBoundaryPoint(_nA);
+			bool nB_isBoundary = pMesh->isBoundaryPoint(_nB);
+			bool nC_isBoundary = pMesh->isBoundaryPoint(_nC);
+			NodeX << pMesh->getVertex(_nA).x << '\t' << pMesh->getVertex(_nB).x << '\t' << pMesh->getVertex(_nC).x << '\n';
+			NodeY << pMesh->getVertex(_nA).y << '\t' << pMesh->getVertex(_nB).y << '\t' << pMesh->getVertex(_nC).y << '\n';
+			if (nA_isBoundary)
+			{
+				Value << 0 << '\t';
+			}
+			else
+			{
+				Value << abs(Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nA))) << '\t';
+			}
+			if (nB_isBoundary)
+			{
+				Value << 0 << '\t';
+			}
+			else
+			{
+				Value << abs(Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nB))) << '\t';
+			}
+			if (nC_isBoundary)
+			{
+				Value << 0 << '\t';
+			}
+			else
+			{
+				Value << abs(Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nC))) << '\n';
+			}
+		}
+	}
+	out3 << NodeX.rdbuf() << NodeY.rdbuf() << Value.rdbuf();
+	out3.close();
+
+	//use for matlab patching all domains' Asca
+	auto patch_name = m_dir + "_" + "Eigen_results_patch_all_Asca.txt";
+	Qofstream out4;
+	out4.open(patch_name);
+	if (!out4)
+	{
+		Qcout << "fail creating Eigen_results_patch_all_Asca.txt" << std::endl;
+	}
+	std::stringstream tmpNodeX, tmpNodeY, tmpValue;
+	for (int k = 0; k < triangleNum; k++) 
+	{
+		Triangle& tri = pMesh->getTriangleRef(k);
+		int _nA, _nB, _nC;
+		tri.getnAnBnC(_nA, _nB, _nC);
+		bool nA_isBoundary = pMesh->isBoundaryPoint(_nA);
+		bool nB_isBoundary = pMesh->isBoundaryPoint(_nB);
+		bool nC_isBoundary = pMesh->isBoundaryPoint(_nC);
+		tmpNodeX << pMesh->getVertex(_nA).x << '\t' << pMesh->getVertex(_nB).x << '\t' << pMesh->getVertex(_nC).x << '\n';
+		tmpNodeY << pMesh->getVertex(_nA).y << '\t' << pMesh->getVertex(_nB).y << '\t' << pMesh->getVertex(_nC).y << '\n';
+		if (nA_isBoundary)
+		{
+			tmpValue << 0 << '\t';
+		}
+		else
+		{
+			tmpValue << abs(Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nA))) << '\t';
+		}
+		if (nB_isBoundary)
+		{
+			tmpValue << 0 << '\t';
+		}
+		else
+		{
+			tmpValue << abs(Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nB))) << '\t';
+		}
+		if (nC_isBoundary)
+		{
+			tmpValue << 0 << '\n';
+		}
+		else
+		{
+			tmpValue << abs(Eigen_Asca_Jsk(pMesh->getUnknownVertexOderbyIndex(_nC))) << '\n';
+		}
+	}
+	out4 << tmpNodeX.rdbuf() << tmpNodeY.rdbuf() << tmpValue.rdbuf();
+	out4.close();
+	//use for matlab surf/clabel all domains Asca picture
 	auto Eigen_result_Asca_name = m_dir + "_" + "Eigen_results_Asca.txt";
-	Qofstream Eigen_result_Asca;
-	Eigen_result_Asca.open(Eigen_result_Asca_name);
-	if (!Eigen_result_Asca)
+	Qofstream out5;
+	out5.open(Eigen_result_Asca_name);
+	if (!out5)
 	{
 		Qcout << "fail creating Eigen_results_Asca.txt" << std::endl;
 	}
@@ -309,17 +482,17 @@ void        ThreePhaseAC::output()
 	for (int i = 0; i < Eigen_Asca_Jsk.size() - 3; i++)
 	{
 			int _index = pMesh->getUnkownVertexIndex(i);
-			Eigen_result_Asca << _index << '\t' << pMesh->getVertex(_index).x << '\t' << pMesh->getVertex(_index).y << '\t' << abs(Eigen_Asca_Jsk(i)) << std::endl;
+			out5 << _index << '\t' << pMesh->getVertex(_index).x << '\t' << pMesh->getVertex(_index).y << '\t' << abs(Eigen_Asca_Jsk(i)) << std::endl;
 	}
 	for (int j = 0; j < pMesh->getVertexNum(); j++)
 	{
 		if (pMesh->isBoundaryPoint(j))
 		{
-			Eigen_result_Asca << j << '\t' << pMesh->getVertex(j).x << '\t' << pMesh->getVertex(j).y << '\t' << 0 << std::endl;
+			out5 << j << '\t' << pMesh->getVertex(j).x << '\t' << pMesh->getVertex(j).y << '\t' << 0 << std::endl;
 		}
 	}
-	Eigen_result_Asca.close();
-
+	out5.close();
+	// finished flag
 	Qcout << "finished" << std::endl;
 	tool::elapsedTime(m_log, "end output");
 }

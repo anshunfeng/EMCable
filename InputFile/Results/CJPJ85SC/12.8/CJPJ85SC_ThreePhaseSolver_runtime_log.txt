@@ -1,0 +1,24 @@
+Config Information:
+  -> ThreePhase:
+    => Frequency:             50Hz
+    => Amplitude:             21.2132A
+    => Phase:                 0degree
+    => Dielectric_domains:    1 2 
+    => Current_domains:       44 59 72 
+    => Mental_sigma:          5.8e+07
+    => MeshFile_path:         D:\\Important Documents\\cable_math\\EMCable\\InputFile\\CJPJ85SC.mphtxt
+Mesh Information:
+  -> MeshName:                MeshByComsol
+  -> TotalVertices:           203505
+  -> Triangles:               406816
+  -> EdgePoints:              192
+  -> Subdomains:              125
+[end init:                    7 s]
+[end fillV:                   35 ms]
+[end fillArea:                18 ms]
+[end fillQ:                   35 ms]
+[end fillSandT:               774 ms]
+[end fillEigen matrix:        166 ms]
+[end solve:                   7 s]
+[end output:                  15 s]
+[total time:                  31 s]

@@ -3,6 +3,6 @@
 ### Amplitude/A: 100
 ### Phase/degree: 0
 ### Dielectric_domains: 1 2
-### Current_domains: 3 4 5
+### Current_domains: 44 59 72
 ### Mental_sigma: 5.8e7
-### MeshFile_path: D:\\Important Documents\\cable_math\\EMCable\\InputFile\\MeshFileForC.txt
+### MeshFile_path: D:\\Important Documents\\cable_math\\EMCable\\InputFile\\CJPJ85SC 2D 12.8.mphtxt

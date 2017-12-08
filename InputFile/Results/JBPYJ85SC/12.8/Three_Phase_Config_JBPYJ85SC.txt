@@ -1,0 +1,8 @@
+### Solver_Type: ThreePhaseAC
+### Frequency/Hz: 50
+### Amplitude/A: 282.84
+### Phase/degree: 0
+### Dielectric_domains: 1 2 30
+### Current_domains: 80 133 178
+### Mental_sigma: 5.8e7
+### MeshFile_path: D:\\Important Documents\\cable_math\\EMCable\\InputFile\\JBPYJ85SC.mphtxt

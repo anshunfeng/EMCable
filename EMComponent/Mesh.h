@@ -49,6 +49,8 @@ namespace component {
 	private:
 		bool			loadMatlabMeshFile(const Qstring& filename);
 		bool			readMatlabTmpFile();
+		bool			loadMphtxtMeshFile(const Qstring& filename);
+		bool			readMphtxtTmpFile();
 	};
 	
 	inline Triangle&    Mesh::getTriangleRef(size_t i)
